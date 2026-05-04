@@ -1,3 +1,22 @@
 [
-  {"question": "hihi cả nhà tự tạo testset bằng cơm nhé", "ground_truth": "Không kịp tạo luôn"},
+  {"question": "Nhân viên chính thức được nghỉ phép năm bao nhiêu ngày?", "ground_truth": "Nhân viên chính thức được nghỉ phép năm 12 ngày làm việc mỗi năm."},
+  {"question": "Số ngày nghỉ phép tăng thêm như thế nào theo thâm niên?", "ground_truth": "Số ngày nghỉ phép tăng thêm 1 ngày cho mỗi 5 năm thâm niên công tác, tối đa 18 ngày/năm."},
+  {"question": "Nhân viên có thể tích lũy bao nhiêu ngày nghỉ phép sang năm sau?", "ground_truth": "Nhân viên có thể tích lũy tối đa 1.5 lần số ngày nghỉ phép năm sang năm tiếp theo."},
+  {"question": "Nghỉ phép không lương tối đa bao nhiêu ngày?", "ground_truth": "Nhân viên có thể xin nghỉ phép không lương tối đa 30 ngày mỗi năm."},
+  {"question": "Đơn xin nghỉ phép không lương phải nộp trước bao nhiêu ngày?", "ground_truth": "Đơn xin nghỉ phải được phê duyệt trước ít nhất 7 ngày làm việc."},
+  {"question": "Nghỉ ốm trên bao nhiêu ngày phải có giấy chứng nhận bác sĩ?", "ground_truth": "Nghỉ ốm trên 3 ngày liên tiếp bắt buộc phải có giấy chứng nhận của bác sĩ."},
+  {"question": "Quy trình xin nghỉ phép gồm mấy bước?", "ground_truth": "Quy trình xin nghỉ phép gồm 5 bước: đăng nhập hệ thống HR, chọn loại nghỉ và ngày, điền lý do và người bàn giao, gửi đơn để quản lý phê duyệt, nhận email xác nhận."},
+  {"question": "Mật khẩu tài khoản công ty phải thay đổi sau bao nhiêu ngày?", "ground_truth": "Mật khẩu tài khoản công ty phải được thay đổi mỗi 90 ngày."},
+  {"question": "Mật khẩu phải có độ dài tối thiểu bao nhiêu ký tự?", "ground_truth": "Mật khẩu phải có độ dài tối thiểu 12 ký tự."},
+  {"question": "Tài khoản bị khóa sau bao nhiêu lần đăng nhập sai?", "ground_truth": "Tài khoản sẽ bị khóa sau 5 lần đăng nhập sai liên tiếp."},
+  {"question": "VPN công ty sử dụng giao thức gì?", "ground_truth": "VPN sử dụng giao thức WireGuard với mã hóa AES-256."},
+  {"question": "Kết nối VPN tự động ngắt sau bao lâu không hoạt động?", "ground_truth": "Kết nối VPN tự động ngắt sau 8 giờ không hoạt động."},
+  {"question": "Thời gian thử việc cho vị trí chuyên viên là bao nhiêu ngày?", "ground_truth": "Thời gian thử việc là 60 ngày đối với vị trí chuyên viên."},
+  {"question": "Lương trong thời gian thử việc bằng bao nhiêu phần trăm lương chính thức?", "ground_truth": "Trong thời gian thử việc, lương bằng 85% mức lương chính thức."},
+  {"question": "Nhân viên được cấp ngân sách đào tạo bao nhiêu mỗi năm?", "ground_truth": "Mỗi nhân viên được cấp ngân sách đào tạo 5,000,000 VNĐ/năm."},
+  {"question": "Phụ cấp ăn trưa mỗi ngày là bao nhiêu?", "ground_truth": "Phụ cấp ăn trưa 50,000 VNĐ/ngày làm việc."},
+  {"question": "Bảo hiểm nhân thọ có mức bảo hiểm bằng bao nhiêu tháng lương?", "ground_truth": "Bảo hiểm nhân thọ với mức bảo hiểm 24 tháng lương."},
+  {"question": "Vị trí tuyển dụng phải đăng nội bộ trước bao nhiêu ngày?", "ground_truth": "Tất cả vị trí tuyển dụng phải được đăng trên hệ thống nội bộ ít nhất 5 ngày làm việc trước khi đăng ra ngoài."},
+  {"question": "Thời gian từ nộp hồ sơ đến quyết định tuyển dụng tối đa bao lâu?", "ground_truth": "Thời gian từ nộp hồ sơ đến quyết định tuyển dụng không quá 30 ngày làm việc."},
+  {"question": "Nhân viên hoàn thành khóa đào tạo do công ty tài trợ phải cam kết làm việc thêm bao lâu?", "ground_truth": "Nhân viên hoàn thành khóa đào tạo do công ty tài trợ cam kết làm việc thêm ít nhất 1 năm."}
 ]
