@@ -37,10 +37,31 @@ cp .env.example .env                    # Điền API keys
 python naive_baseline.py                # ⚠️ Chạy TRƯỚC để có baseline
 ```
 
+### LLM cục bộ (Ollama / LM Studio)
+
+Pipeline và RAGAS dùng SDK OpenAI-compatible: đặt trong `.env`:
+
+- `LOCAL_LLM_BASE_URL` — ví dụ Ollama: `http://127.0.0.1:11434/v1`
+- `LOCAL_LLM_MODEL` — ví dụ `qwen2.5:latest`
+- `LOCAL_EMBEDDING_MODEL` — ví dụ `nomic-embed-text` (`ollama pull nomic-embed-text`)
+
+Guard moderation mặc định gọi OpenAI — khi chỉ local: `LLAMA_GUARD_BACKEND=none`. Chi tiết xem `.env.example`.
+
+## Chạy nhanh (ít token & thời gian)
+
+Chi phí chủ yếu là **54 truy vấn LLM + RAGAS** (nhiều lần gọi model phụ). Khi chỉnh pipeline:
+
+1. Trong `.env` đặt `LAB_EVAL_LIMIT=8` (hoặc 12…) — chỉ đánh giá N cây đầu tiên.
+2. Đặt `SKIP_NAIVE_BASELINE=1` — `main.py` bỏ baseline (không RAGAS baseline).
+3. Hoặc chỉ chạy production: `python src/pipeline.py` (không qua baseline trong một lệnh).
+
+Trước khi nộp bài / báo cáo đầy đủ: xóa hoặc đặt `LAB_EVAL_LIMIT=0` và tắt `SKIP_NAIVE_BASELINE`, rồi `python main.py`.
+
 ## Chạy toàn bộ
 
 ```bash
 python main.py                          # Naive + Production + So sánh
+python run_blueprint_deliverables.py    # Guard + Judge + reports (blueprint rubric)
 python check_lab.py                     # Kiểm tra trước khi nộp
 ```
 
@@ -65,7 +86,7 @@ lab18-production-rag/
 │   ├── sample_01.md
 │   ├── sample_02.md
 │   └── sample_03.md
-├── test_set.json               # 20 Q&A pairs
+├── test_set.json               # 54 Q&A pairs (3 distributions cho RAGAS blueprint)
 │
 ├── src/                        # ★ Scaffold code (có TODO markers)
 │   ├── m1_chunking.py          # Module 1: Chunking

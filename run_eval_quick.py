@@ -6,11 +6,18 @@ os.makedirs("reports", exist_ok=True)
 from src.m1_chunking import load_documents, chunk_hierarchical
 from src.m2_search import HybridSearch
 from src.m3_rerank import CrossEncoderReranker
-from src.m4_eval import load_test_set, evaluate_ragas, failure_analysis, save_report
+from src.m4_eval import (
+    load_test_set,
+    evaluate_ragas,
+    failure_analysis,
+    failure_cluster_analysis,
+    attach_distributions,
+    distribution_breakdown,
+    save_report,
+)
 from config import RERANK_TOP_K
-from openai import OpenAI
+from src.llm_client import get_openai_compat_client, chat_completion_model
 
-client = OpenAI()
 
 def run_query(query, search, reranker):
     results = search.search(query)
@@ -18,9 +25,13 @@ def run_query(query, search, reranker):
     reranked = reranker.rerank(query, docs, top_k=RERANK_TOP_K)
     contexts = [r.text for r in reranked] if reranked else [r.text for r in results[:3]]
 
+    client = get_openai_compat_client()
+    if client is None:
+        return (contexts[0] if contexts else "Không có LLM (thiếu LOCAL_LLM_BASE_URL hoặc OPENAI_API_KEY)."), contexts
+
     context_str = "\n\n".join(contexts)
     resp = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model=chat_completion_model(),
         messages=[
             {"role": "system", "content": "Trả lời CHỈ dựa trên context. Ngắn gọn, đúng trọng tâm. Nếu không có thông tin → nói 'Tài liệu không đề cập.'"},
             {"role": "user", "content": f"Context:\n{context_str}\n\nCâu hỏi: {query}"},
@@ -65,8 +76,18 @@ print("PRODUCTION SCORES")
 print("="*50)
 for m in ["faithfulness", "answer_relevancy", "context_precision", "context_recall"]:
     s = results.get(m, 0)
-    print(f"  {'✓' if s >= 0.75 else '✗'} {m}: {s:.4f}")
+    print(f"  {'+' if s >= 0.75 else '-'} {m}: {s:.4f}")
 
-failures = failure_analysis(results.get("per_question", []))
-save_report(results, failures, path="reports/ragas_report.json")
+per_q = results.get("per_question", [])
+attach_distributions(per_q, test_set)
+failures = failure_analysis(per_q, bottom_n=10)
+clusters = failure_cluster_analysis(failures)
+dist_agg = distribution_breakdown(per_q)
+save_report(
+    results,
+    failures,
+    path="reports/ragas_report.json",
+    failure_clusters=clusters,
+    distribution_breakdown_dict=dist_agg,
+)
 print("\nDone! Report saved to reports/ragas_report.json")

@@ -1,10 +1,11 @@
 """Module 2: Hybrid Search — BM25 (Vietnamese) + Dense + RRF."""
 
-import os, sys
+import os, sys, uuid
 from dataclasses import dataclass
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config import (QDRANT_HOST, QDRANT_PORT, COLLECTION_NAME, EMBEDDING_MODEL,
+from config import (QDRANT_HOST, QDRANT_PORT, COLLECTION_NAME, DATA_DIR,
+                    EMBEDDING_MODEL,
                     EMBEDDING_DIM, BM25_TOP_K, DENSE_TOP_K, HYBRID_TOP_K)
 
 
@@ -74,16 +75,62 @@ class BM25Search:
 
 
 class DenseSearch:
-    def __init__(self):
+    def __init__(self, storage_slug: str = "default"):
+        """
+        storage_slug: thư mục nhúng tách riêng (naive vs hybrid) tránh lock khi 2 process Qdrant local.
+        Ghi đè toàn bộ: env QDRANT_LOCAL_PATH (một đường dẫn tuyệt đối).
+        """
+        self.client = None
+        self._storage_slug = storage_slug
         try:
             from qdrant_client import QdrantClient
-            self.client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
-        except Exception:
+
+            force_embedded = os.getenv("QDRANT_EMBEDDED", "").lower() in ("1", "true", "yes")
+            if not force_embedded:
+                try:
+                    remote = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
+                    remote.get_collections()
+                    self.client = remote
+                except Exception:
+                    self.client = None
+            if self.client is None:
+                base_path = os.getenv("QDRANT_LOCAL_PATH") or os.path.join(
+                    DATA_DIR, f".qdrant_storage_{storage_slug}"
+                )
+                path_try = base_path
+                last_err: Exception | None = None
+                for attempt in range(5):
+                    try:
+                        os.makedirs(path_try, exist_ok=True)
+                        client_try = QdrantClient(path=path_try)
+                        self.client = client_try
+                        if path_try != base_path:
+                            print(f"  [INFO] Embedded Qdrant — fallback path (lock avoided): {path_try}")
+                        else:
+                            print(f"  [INFO] Embedded Qdrant (no Docker): {path_try}")
+                        break
+                    except RuntimeError as e:
+                        last_err = e
+                        msg = str(e).lower()
+                        if "already accessed" not in msg:
+                            raise
+                        path_try = os.path.join(
+                            DATA_DIR,
+                            f".qdrant_storage_{storage_slug}_{os.getpid()}_{uuid.uuid4().hex[:8]}",
+                        )
+
+                if self.client is None and last_err is not None:
+                    raise last_err
+        except Exception as e:
+            print(f"  [WARN] Qdrant init failed ({type(e).__name__}): {e}")
             self.client = None
         self._encoder = None
 
     def _get_encoder(self):
         if self._encoder is None:
+            # Giảm crash subprocess/tokenizers trên Windows khi dùng cùng job embedding + LM Studio GPU.
+            os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+            os.environ.setdefault("OMP_NUM_THREADS", "1")
             from sentence_transformers import SentenceTransformer
             self._encoder = SentenceTransformer(EMBEDDING_MODEL)
         return self._encoder
@@ -91,7 +138,7 @@ class DenseSearch:
     def index(self, chunks: list[dict], collection: str = COLLECTION_NAME) -> None:
         """Index chunks into Qdrant."""
         if self.client is None:
-            print("  ⚠️  Qdrant not available — skipping dense indexing")
+            print("  [WARN] Qdrant not available — skipping dense indexing")
             return
 
         try:
@@ -121,7 +168,7 @@ class DenseSearch:
                 self.client.upsert(collection_name=collection, points=points[i:i + batch_size])
 
         except Exception as e:
-            print(f"  ⚠️  Dense indexing error: {e}")
+            print(f"  [WARN] Dense indexing error: {e}")
 
     def search(self, query: str, top_k: int = DENSE_TOP_K, collection: str = COLLECTION_NAME) -> list[SearchResult]:
         """Search using dense vectors."""
@@ -146,7 +193,7 @@ class DenseSearch:
                 for hit in hits
             ]
         except Exception as e:
-            print(f"  ⚠️  Dense search error: {e}")
+            print(f"  [WARN] Dense search error: {e}")
             return []
 
 
@@ -187,7 +234,7 @@ class HybridSearch:
     """Combines BM25 + Dense + RRF. (Đã implement sẵn — dùng classes ở trên)"""
     def __init__(self):
         self.bm25 = BM25Search()
-        self.dense = DenseSearch()
+        self.dense = DenseSearch("hybrid")
 
     def index(self, chunks: list[dict]) -> None:
         self.bm25.index(chunks)

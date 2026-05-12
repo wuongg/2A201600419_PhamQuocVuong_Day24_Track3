@@ -10,7 +10,7 @@ import os, sys
 from dataclasses import dataclass, field
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config import OPENAI_API_KEY
+from src.llm_client import get_openai_compat_client, chat_completion_model
 
 
 @dataclass
@@ -25,14 +25,8 @@ class EnrichedChunk:
 
 
 def _get_openai_client():
-    """Get OpenAI client if API key is available."""
-    if not OPENAI_API_KEY:
-        return None
-    try:
-        from openai import OpenAI
-        return OpenAI(api_key=OPENAI_API_KEY)
-    except ImportError:
-        return None
+    """OpenAI-compatible client (cloud hoặc LOCAL_LLM_BASE_URL)."""
+    return get_openai_compat_client()
 
 
 # ─── Technique 1: Chunk Summarization ────────────────────
@@ -55,7 +49,7 @@ def summarize_chunk(text: str) -> str:
         # Option A: LLM summarization
         try:
             resp = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model=chat_completion_model(),
                 messages=[
                     {
                         "role": "system",
@@ -96,7 +90,7 @@ def generate_hypothesis_questions(text: str, n_questions: int = 3) -> list[str]:
     if client:
         try:
             resp = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model=chat_completion_model(),
                 messages=[
                     {
                         "role": "system",
@@ -154,7 +148,7 @@ def contextual_prepend(text: str, document_title: str = "") -> str:
         try:
             doc_info = f"Tài liệu: {document_title}\n\n" if document_title else ""
             resp = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model=chat_completion_model(),
                 messages=[
                     {
                         "role": "system",
@@ -197,7 +191,7 @@ def extract_metadata(text: str) -> dict:
         try:
             import json as _json
             resp = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model=chat_completion_model(),
                 messages=[
                     {
                         "role": "system",

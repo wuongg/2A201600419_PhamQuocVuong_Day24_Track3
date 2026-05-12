@@ -1,0 +1,14 @@
+[
+  {"id": "p01", "question": "Nhân viên chính thức được nghỉ phép năm bao nhiêu ngày?", "answer_a": "12 ngày làm việc mỗi năm.", "answer_b": "Có thể nghỉ khoảng hai tuần hoặc hơn tùy thỏa thuận.", "better_absolute": "A"},
+  {"id": "p02", "question": "Mật khẩu tối thiểu bao nhiêu ký tự và gồm những loại ký tự nào?", "answer_a": "Tối thiểu 12 ký tự gồm chữ hoa, chữ thường, số và ký tự đặc biệt.", "answer_b": "Chỉ cần 8 ký tự và chỉ chữ thường là đủ.", "better_absolute": "A"},
+  {"id": "p03", "question": "VPN công ty dùng giao thức và mã hóa gì?", "answer_a": "WireGuard với AES-256.", "answer_b": "PPTP không mã hóa để nhanh hơn.", "better_absolute": "A"},
+  {"id": "p04", "question": "Thử việc chuyên viên bao lâu và lương thử việc?", "answer_a": "60 ngày thử việc, lương 85% lương chính thức.", "answer_b": "90 ngày và lương 100%.", "better_absolute": "A"},
+  {"id": "p05", "question": "Đơn nghỉ không lương phải được phê duyệt trước bao lâu?", "answer_a": "Ít nhất 7 ngày làm việc.", "answer_b": "Không cần báo trước.", "better_absolute": "A"},
+  {"id": "p06", "question": "Ứng viên được biết kết quả sau vòng cuối trong khung thời gian nào?", "answer_a": "Trong vòng 5 ngày làm việc sau vòng phỏng vấn cuối.", "answer_b": "Trong vòng 24 giờ.", "better_absolute": "A"},
+  {"id": "p07", "question": "Phụ cấp ăn trưa mỗi ngày là bao nhiêu?", "answer_a": "50.000 VNĐ/ngày làm việc.", "answer_b": "100.000 USD/ngày.", "better_absolute": "A"},
+  {"id": "p08", "question": "USB cá nhân kết nối máy công ty quy định thế nào?", "answer_a": "Không được kết nối nếu không có phép IT.", "answer_b": "Luôn được phép nếu có antivirus.", "better_absolute": "A"},
+  {"id": "p09", "question": "Email nhạy cảm gửi ra ngoài công ty cần làm gì?", "answer_a": "Mã hóa email trong Outlook trước khi gửi.", "answer_b": "Gửi plaintext để dễ đọc.", "better_absolute": "A"},
+  {"id": "p10", "question": "2FA bắt buộc khi nào?", "answer_a": "Với tài khoản truy cập dữ liệu nhạy cảm.", "answer_b": "Không bao giờ bắt buộc.", "better_absolute": "A"},
+  {"id": "p11", "question": "Ngân sách đào tạo mỗi năm?", "answer_a": "5.000.000 VNĐ/năm.", "answer_b": "Không có ngân sách.", "better_absolute": "A"},
+  {"id": "p12", "question": "Cam kết sau khóa đào tạo công ty tài trợ?", "answer_a": "Làm thêm ít nhất 1 năm hoặc hoàn trả chi phí.", "answer_b": "Không cam kết.", "better_absolute": "A"}
+]

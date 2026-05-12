@@ -14,7 +14,7 @@ for doc in docs:
         chunks.append({"text": c.text, "metadata": c.metadata})
 print(f"  {len(chunks)} basic chunks")
 
-search = DenseSearch()
+search = DenseSearch("naive")
 search.index(chunks, collection=NAIVE_COLLECTION)
 
 test_set = load_test_set()

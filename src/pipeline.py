@@ -7,9 +7,36 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.m1_chunking import load_documents, chunk_hierarchical
 from src.m2_search import HybridSearch
 from src.m3_rerank import CrossEncoderReranker
-from src.m4_eval import load_test_set, evaluate_ragas, failure_analysis, save_report
+from src.m4_eval import (
+    load_test_set,
+    evaluate_ragas,
+    failure_analysis,
+    failure_cluster_analysis,
+    attach_distributions,
+    distribution_breakdown,
+    save_report,
+)
 from src.m5_enrichment import enrich_chunks
-from config import RERANK_TOP_K
+from src.llm_client import get_openai_compat_client, chat_completion_model
+from config import (
+    RERANK_TOP_K,
+    SKIP_M5_ENRICHMENT,
+    PIPELINE_MAX_CONTEXT_CHARS,
+    SKIP_CROSS_ENCODER_RERANK,
+)
+
+
+def _configure_stdio_utf8() -> None:
+    """Windows console (cp1258/cp1252): tránh UnicodeEncodeError khi print tiếng Việt."""
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(encoding="utf-8", errors="replace")
+            except Exception:
+                pass
+
+
+_configure_stdio_utf8()
 
 
 def build_pipeline():
@@ -29,14 +56,16 @@ def build_pipeline():
     print(f"  {len(all_chunks)} chunks from {len(docs)} documents")
 
     # Step 2: Enrichment (M5)
-    print("\n[2/4] Enriching chunks (M5)...")
-    enriched = enrich_chunks(all_chunks, methods=["contextual", "hyqa", "metadata"])
-    if enriched:
-        # Use enriched text for indexing
-        all_chunks = [{"text": e.enriched_text, "metadata": e.auto_metadata} for e in enriched]
-        print(f"  Enriched {len(enriched)} chunks")
+    if SKIP_M5_ENRICHMENT:
+        print("\n[2/4] SKIP_M5_ENRICHMENT=1 — bỏ gọi LLM enrichment, giữ raw chunks")
     else:
-        print("  ⚠️  M5 not implemented — using raw chunks (fallback)")
+        print("\n[2/4] Enriching chunks (M5)...")
+        enriched = enrich_chunks(all_chunks, methods=["contextual", "hyqa", "metadata"])
+        if enriched:
+            all_chunks = [{"text": e.enriched_text, "metadata": e.auto_metadata} for e in enriched]
+            print(f"  Enriched {len(enriched)} chunks")
+        else:
+            print("  [WARN] M5 not implemented — using raw chunks (fallback)")
 
     # Step 3: Index (M2)
     print("\n[3/4] Indexing (BM25 + Dense)...")
@@ -45,6 +74,8 @@ def build_pipeline():
 
     # Step 4: Reranker (M3)
     print("\n[4/4] Loading reranker...")
+    if SKIP_CROSS_ENCODER_RERANK:
+        print("  [INFO] SKIP_CROSS_ENCODER_RERANK=1 — không load cross-encoder (score-only top-k)")
     reranker = CrossEncoderReranker()
 
     return search, reranker
@@ -59,12 +90,15 @@ def run_query(query: str, search: HybridSearch, reranker: CrossEncoderReranker) 
 
     # LLM generation
     try:
-        from openai import OpenAI
-        import os
-        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY", ""))
+        client = get_openai_compat_client()
+        if client is None:
+            raise RuntimeError("no_llm_client")
         context_str = "\n\n".join(contexts)
+        cap = PIPELINE_MAX_CONTEXT_CHARS
+        if cap > 0 and len(context_str) > cap:
+            context_str = context_str[:cap].rsplit("\n\n", 1)[0] + "\n\n...[context truncated]"
         resp = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=chat_completion_model(),
             messages=[
                 {"role": "system", "content": "Trả lời CHỈ dựa trên context được cung cấp. Trả lời ngắn gọn, đúng trọng tâm. Nếu context không có thông tin → nói 'Tài liệu không đề cập.'"},
                 {"role": "user", "content": f"Context:\n{context_str}\n\nCâu hỏi: {query}"},
@@ -100,10 +134,21 @@ def evaluate_pipeline(search: HybridSearch, reranker: CrossEncoderReranker):
     print("=" * 60)
     for m in ["faithfulness", "answer_relevancy", "context_precision", "context_recall"]:
         s = results.get(m, 0)
-        print(f"  {'✓' if s >= 0.75 else '✗'} {m}: {s:.4f}")
+        print(f"  {'+' if s >= 0.75 else '-'} {m}: {s:.4f}")
 
-    failures = failure_analysis(results.get("per_question", []))
-    save_report(results, failures)
+    per_q = results.get("per_question", [])
+    attach_distributions(per_q, test_set)
+    failures = failure_analysis(per_q, bottom_n=10)
+    clusters = failure_cluster_analysis(failures)
+    dist_agg = distribution_breakdown(per_q)
+    os.makedirs("reports", exist_ok=True)
+    save_report(
+        results,
+        failures,
+        path="reports/ragas_report.json",
+        failure_clusters=clusters,
+        distribution_breakdown_dict=dist_agg,
+    )
     return results
 
 

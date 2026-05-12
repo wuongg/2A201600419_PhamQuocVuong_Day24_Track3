@@ -4,7 +4,7 @@ import os, sys, time
 from dataclasses import dataclass
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config import RERANK_TOP_K
+from config import RERANK_TOP_K, SKIP_CROSS_ENCODER_RERANK
 
 
 @dataclass
@@ -21,9 +21,14 @@ class CrossEncoderReranker:
         self.model_name = model_name
         self._model = None
         self._model_type = None  # "flag" or "cross"
+        self._skip_heavy_model = SKIP_CROSS_ENCODER_RERANK
 
     def _load_model(self):
         """Load cross-encoder model — try FlagReranker first, then CrossEncoder."""
+        if self._skip_heavy_model:
+            self._model = None
+            self._model_type = None
+            return None
         if self._model is None:
             # Option A: FlagEmbedding FlagReranker
             try:

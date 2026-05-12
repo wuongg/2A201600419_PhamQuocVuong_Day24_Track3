@@ -9,10 +9,25 @@ Usage:
 
 import json
 import os
+import sys
 import time
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+def _configure_stdio_utf8() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(encoding="utf-8", errors="replace")
+            except Exception:
+                pass
 
 
 def main():
+    _configure_stdio_utf8()
     print("=" * 60)
     print("LAB 18: PRODUCTION RAG PIPELINE")
     print("=" * 60)
@@ -20,14 +35,22 @@ def main():
 
     os.makedirs("reports", exist_ok=True)
 
+    skip_naive = os.getenv("SKIP_NAIVE_BASELINE", "").lower() in ("1", "true", "yes")
+    lim = os.getenv("LAB_EVAL_LIMIT", "0")
+    if lim.isdigit() and int(lim) > 0:
+        print(f"[INFO] LAB_EVAL_LIMIT={lim} — chỉ eval {lim} câu đầu (tiết kiệm token/thời gian).")
+
     # Step 1: Basic Baseline
-    print("\n📌 STEP 1: Running Basic RAG Baseline...")
-    print("-" * 40)
-    from naive_baseline import main as run_baseline
-    run_baseline()
+    if skip_naive:
+        print("\n[*] STEP 1: SKIP_NAIVE_BASELINE=1 — bỏ baseline (tiết kiệm ~50%% chi phí main.py).")
+    else:
+        print("\n[*] STEP 1: Running Basic RAG Baseline...")
+        print("-" * 40)
+        from naive_baseline import main as run_baseline
+        run_baseline()
 
     # Step 2: Production Pipeline
-    print("\n📌 STEP 2: Running Production Pipeline...")
+    print("\n[*] STEP 2: Running Production Pipeline...")
     print("-" * 40)
     from src.pipeline import build_pipeline, evaluate_pipeline
     search, reranker = build_pipeline()
@@ -39,12 +62,14 @@ def main():
             os.rename(f, f"reports/{f}")
 
     # Step 3: Comparison
-    print("\n📌 STEP 3: Comparison")
+    print("\n[*] STEP 3: Comparison")
     print("-" * 40)
     naive_path = "reports/naive_baseline_report.json"
     prod_path = "reports/ragas_report.json"
 
-    if os.path.exists(naive_path) and os.path.exists(prod_path):
+    if skip_naive:
+        print("  (Không so sánh baseline vì đã bỏ bước 1.)")
+    elif os.path.exists(naive_path) and os.path.exists(prod_path):
         with open(naive_path, encoding="utf-8") as f:
             naive = json.load(f)
         with open(prod_path, encoding="utf-8") as f:
@@ -56,12 +81,12 @@ def main():
             n = naive.get("aggregate", {}).get(m, 0)
             p = prod.get("aggregate", {}).get(m, 0)
             d = p - n
-            status = "✓" if p >= 0.75 else " "
+            status = "+" if p >= 0.75 else " "
             print(f"{status} {m:<23} {n:>8.4f} {p:>12.4f} {d:>+8.4f}")
 
     elapsed = time.time() - start
-    print(f"\n⏱️  Total time: {elapsed:.1f}s")
-    print("\n📋 Next steps:")
+    print(f"\n[time] Total time: {elapsed:.1f}s")
+    print("\nNext steps:")
     print("  1. Điền analysis/failure_analysis.md")
     print("  2. Điền analysis/group_report.md")
     print("  3. Viết analysis/reflections/reflection_[Tên].md")

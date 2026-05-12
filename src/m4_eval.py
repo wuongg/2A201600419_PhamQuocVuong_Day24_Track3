@@ -4,7 +4,8 @@ import os, sys, json
 from dataclasses import dataclass
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config import TEST_SET_PATH
+from config import TEST_SET_PATH, LAB_EVAL_LIMIT
+from src.llm_client import ragas_chat_llm, ragas_embeddings_lc, use_local_llm
 
 
 @dataclass
@@ -17,12 +18,17 @@ class EvalResult:
     answer_relevancy: float
     context_precision: float
     context_recall: float
+    distribution: str | None = None
 
 
-def load_test_set(path: str = TEST_SET_PATH) -> list[dict]:
-    """Load test set from JSON. (Đã implement sẵn)"""
+def load_test_set(path: str = TEST_SET_PATH, *, max_questions: int | None = None) -> list[dict]:
+    """Load test set từ JSON. max_questions=None → áp dụng LAB_EVAL_LIMIT (env); >0 cắt bớt."""
     with open(path, encoding="utf-8") as f:
-        return json.load(f)
+        data = json.load(f)
+    cap = LAB_EVAL_LIMIT if max_questions is None else max_questions
+    if cap and cap > 0:
+        data = data[:cap]
+    return data
 
 
 def evaluate_ragas(questions: list[str], answers: list[str],
@@ -42,17 +48,17 @@ def evaluate_ragas(questions: list[str], answers: list[str],
         from ragas.metrics._context_recall import context_recall
         from ragas.metrics._answer_relevance import answer_relevancy
 
-        # Fix answer_relevancy embeddings (RAGAS 0.4 compat)
-        try:
-            from langchain_openai import OpenAIEmbeddings as LCOpenAIEmbeddings
-            answer_relevancy.embeddings = LCOpenAIEmbeddings(
-                model="text-embedding-3-small",
-                openai_api_key=os.getenv("OPENAI_API_KEY", "")
-            )
-        except Exception:
-            pass
+        llm = ragas_chat_llm()
+        emb = ragas_embeddings_lc()
 
         metrics = [faithfulness, answer_relevancy, context_precision, context_recall]
+
+        # Fix answer_relevancy embeddings (RAGAS 0.4 compat)
+        if emb is not None:
+            try:
+                answer_relevancy.embeddings = emb
+            except Exception:
+                pass
 
         # Build dataset
         dataset = Dataset.from_dict({
@@ -62,8 +68,22 @@ def evaluate_ragas(questions: list[str], answers: list[str],
             "ground_truth": ground_truths,
         })
 
+        eval_kw = {}
+        if llm is not None:
+            eval_kw["llm"] = llm
+        if emb is not None:
+            eval_kw["embeddings"] = emb
+
+        # LM Studio / LLM cục bộ thường chỉ phục vụ tốt khi ít job song song (tránh "No models loaded").
+        if use_local_llm():
+            from ragas.run_config import RunConfig
+
+            workers = int(os.getenv("RAGAS_MAX_WORKERS", "1"))
+            tout = int(os.getenv("RAGAS_TIMEOUT", "420"))
+            eval_kw["run_config"] = RunConfig(max_workers=max(1, workers), timeout=tout)
+
         # Run evaluation
-        result = evaluate(dataset, metrics=metrics)
+        result = evaluate(dataset, metrics=metrics, **eval_kw)
 
         # Extract per-question results
         df = result.to_pandas()
@@ -80,16 +100,27 @@ def evaluate_ragas(questions: list[str], answers: list[str],
                 return 0.0
 
         per_question = []
-        for _, row in df.iterrows():
+        for i, (_, row) in enumerate(df.iterrows()):
+            q_cell = row.get("question")
+            if q_cell is None or (isinstance(q_cell, str) and not str(q_cell).strip()):
+                q_cell = row.get("user_input", "")
+            q_str = str(q_cell).strip() if q_cell is not None and str(q_cell).strip() != "nan" else ""
+            if not q_str and i < len(questions):
+                q_str = questions[i]
+
+            gt_cell = row.get("ground_truth", row.get("ground_truths", ""))
+            gt_str = str(gt_cell) if gt_cell is not None else ""
+
             per_question.append(EvalResult(
-                question=str(row.get("question", "")),
+                question=q_str,
                 answer=str(row.get("answer", "")),
                 contexts=list(row.get("contexts", [])),
-                ground_truth=str(row.get("ground_truth", "")),
+                ground_truth=gt_str,
                 faithfulness=_safe_float(row.get("faithfulness")),
                 answer_relevancy=_safe_float(row.get("answer_relevancy")),
                 context_precision=_safe_float(row.get("context_precision")),
                 context_recall=_safe_float(row.get("context_recall")),
+                distribution=None,
             ))
 
         def _agg(key):
@@ -110,15 +141,16 @@ def evaluate_ragas(questions: list[str], answers: list[str],
         }
 
     except ImportError as e:
-        print(f"  ⚠️  RAGAS not available: {e}")
+        print(f"  [WARN] RAGAS not available: {e}")
     except Exception as e:
-        print(f"  ⚠️  RAGAS evaluation error: {e}")
+        print(f"  [WARN] RAGAS evaluation error: {e}")
 
     # Fallback
     per_question = [
         EvalResult(question=q, answer=a, contexts=c, ground_truth=gt,
                    faithfulness=0.0, answer_relevancy=0.0,
-                   context_precision=0.0, context_recall=0.0)
+                   context_precision=0.0, context_recall=0.0,
+                   distribution=None)
         for q, a, c, gt in zip(questions, answers, contexts, ground_truths)
     ]
     return {"faithfulness": 0.0, "answer_relevancy": 0.0,
@@ -203,12 +235,78 @@ def failure_analysis(eval_results: list[EvalResult], bottom_n: int = 10) -> list
     return failures
 
 
-def save_report(results: dict, failures: list[dict], path: str = "ragas_report.json"):
+def attach_distributions(per_question: list[EvalResult], test_set: list[dict]) -> None:
+    """Gắn nhãn distribution từ test_set (cùng thứ tự câu hỏi)."""
+    for i, r in enumerate(per_question):
+        if i < len(test_set):
+            d = test_set[i].get("distribution")
+            if d:
+                r.distribution = str(d)
+
+
+def distribution_breakdown(per_question: list[EvalResult]) -> dict:
+    """Trung bình 4 metric theo từng distribution (test stratified)."""
+    buckets: dict[str, list[EvalResult]] = {}
+    for r in per_question:
+        key = r.distribution or "unknown"
+        buckets.setdefault(key, []).append(r)
+
+    def _avg(rows: list[EvalResult], metric: str) -> float:
+        vals = [getattr(x, metric) for x in rows]
+        vals = [float(v) for v in vals if v is not None and v == v]
+        return sum(vals) / len(vals) if vals else 0.0
+
+    out = {}
+    for name, rows in sorted(buckets.items()):
+        out[name] = {
+            "count": len(rows),
+            "faithfulness": _avg(rows, "faithfulness"),
+            "answer_relevancy": _avg(rows, "answer_relevancy"),
+            "context_precision": _avg(rows, "context_precision"),
+            "context_recall": _avg(rows, "context_recall"),
+        }
+    return out
+
+
+def failure_cluster_analysis(failures: list[dict]) -> dict:
+    """
+    Gom nhóm failure patterns (cluster) theo worst_metric và nhóm diagnosis.
+    Dùng cho rubric: failure cluster analysis.
+    """
+    by_metric: dict[str, list[str]] = {}
+    by_diagnosis: dict[str, list[str]] = {}
+    for f in failures:
+        m = f.get("worst_metric", "unknown")
+        by_metric.setdefault(m, []).append(f.get("question", "")[:120])
+        diag = f.get("diagnosis", "unknown")[:80]
+        by_diagnosis.setdefault(diag, []).append(f.get("question", "")[:120])
+
+    clusters = {
+        "by_worst_metric": {k: {"count": len(v), "sample_questions": v[:5]} for k, v in by_metric.items()},
+        "by_diagnosis_pattern": {k: {"count": len(v), "sample_questions": v[:3]} for k, v in by_diagnosis.items()},
+        "summary": (
+            f"{len(failures)} low-performing questions; dominant failure axes: "
+            + ", ".join(sorted(by_metric.keys(), key=lambda x: -len(by_metric[x]))[:4])
+        ),
+    }
+    return clusters
+
+
+def save_report(
+    results: dict,
+    failures: list[dict],
+    path: str = "ragas_report.json",
+    *,
+    failure_clusters: dict | None = None,
+    distribution_breakdown_dict: dict | None = None,
+):
     """Save evaluation report to JSON. (Đã implement sẵn)"""
     report = {
         "aggregate": {k: v for k, v in results.items() if k != "per_question"},
         "num_questions": len(results.get("per_question", [])),
         "failures": failures,
+        "failure_clusters": failure_clusters or {},
+        "distribution_breakdown": distribution_breakdown_dict or {},
     }
     with open(path, "w", encoding="utf-8") as f:
         json.dump(report, f, ensure_ascii=False, indent=2)
