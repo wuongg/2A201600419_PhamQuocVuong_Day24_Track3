@@ -6,8 +6,8 @@ __pycache__/
 qdrant_data/
 data/.qdrant_storage/
 data/.qdrant_storage_*/
-naive_baseline_report.json
-ragas_report.json
+/naive_baseline_report.json
+/ragas_report.json
 data/.qdrant_test/
 *.egg-info/
-reports/*.json
+# Giữ JSON báo cáo eval trong reports/ để nộp bài / CI (không ignore)

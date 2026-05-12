@@ -1,0 +1,195 @@
+{
+  "cohen_kappa": 1.0,
+  "n_human_pairs": 10,
+  "pairwise_details": [
+    {
+      "pair_id": "p01",
+      "judge": "A",
+      "human": "A",
+      "trial1_mapped_to_original": "A",
+      "trial2_mapped_to_original": "A",
+      "positional_disagreement": false,
+      "votes": {
+        "A": 2,
+        "B": 0,
+        "tie": 0
+      }
+    },
+    {
+      "pair_id": "p02",
+      "judge": "A",
+      "human": "A",
+      "trial1_mapped_to_original": "A",
+      "trial2_mapped_to_original": "A",
+      "positional_disagreement": false,
+      "votes": {
+        "A": 2,
+        "B": 0,
+        "tie": 0
+      }
+    },
+    {
+      "pair_id": "p03",
+      "judge": "A",
+      "human": "A",
+      "trial1_mapped_to_original": "A",
+      "trial2_mapped_to_original": "A",
+      "positional_disagreement": false,
+      "votes": {
+        "A": 2,
+        "B": 0,
+        "tie": 0
+      }
+    },
+    {
+      "pair_id": "p04",
+      "judge": "A",
+      "human": "A",
+      "trial1_mapped_to_original": "A",
+      "trial2_mapped_to_original": "A",
+      "positional_disagreement": false,
+      "votes": {
+        "A": 2,
+        "B": 0,
+        "tie": 0
+      }
+    },
+    {
+      "pair_id": "p05",
+      "judge": "A",
+      "human": "A",
+      "trial1_mapped_to_original": "A",
+      "trial2_mapped_to_original": "A",
+      "positional_disagreement": false,
+      "votes": {
+        "A": 2,
+        "B": 0,
+        "tie": 0
+      }
+    },
+    {
+      "pair_id": "p06",
+      "judge": "A",
+      "human": "A",
+      "trial1_mapped_to_original": "A",
+      "trial2_mapped_to_original": "A",
+      "positional_disagreement": false,
+      "votes": {
+        "A": 2,
+        "B": 0,
+        "tie": 0
+      }
+    },
+    {
+      "pair_id": "p07",
+      "judge": "A",
+      "human": "A",
+      "trial1_mapped_to_original": "A",
+      "trial2_mapped_to_original": "A",
+      "positional_disagreement": false,
+      "votes": {
+        "A": 2,
+        "B": 0,
+        "tie": 0
+      }
+    },
+    {
+      "pair_id": "p08",
+      "judge": "A",
+      "human": "A",
+      "trial1_mapped_to_original": "A",
+      "trial2_mapped_to_original": "A",
+      "positional_disagreement": false,
+      "votes": {
+        "A": 2,
+        "B": 0,
+        "tie": 0
+      }
+    },
+    {
+      "pair_id": "p09",
+      "judge": "A",
+      "human": "A",
+      "trial1_mapped_to_original": "A",
+      "trial2_mapped_to_original": "A",
+      "positional_disagreement": false,
+      "votes": {
+        "A": 2,
+        "B": 0,
+        "tie": 0
+      }
+    },
+    {
+      "pair_id": "p10",
+      "judge": "A",
+      "human": "A",
+      "trial1_mapped_to_original": "A",
+      "trial2_mapped_to_original": "A",
+      "positional_disagreement": false,
+      "votes": {
+        "A": 2,
+        "B": 0,
+        "tie": 0
+      }
+    }
+  ],
+  "positional_bias_incidents": [],
+  "absolute_scores_sample": [
+    {
+      "pair_id": "p01",
+      "a": {
+        "correctness": 3,
+        "completeness": 3
+      },
+      "b": {
+        "correctness": 3,
+        "completeness": 3
+      }
+    },
+    {
+      "pair_id": "p02",
+      "a": {
+        "correctness": 4,
+        "completeness": 4
+      },
+      "b": {
+        "correctness": 3,
+        "completeness": 3
+      }
+    },
+    {
+      "pair_id": "p03",
+      "a": {
+        "correctness": 3,
+        "completeness": 3
+      },
+      "b": {
+        "correctness": 3,
+        "completeness": 3
+      }
+    },
+    {
+      "pair_id": "p04",
+      "a": {
+        "correctness": 3,
+        "completeness": 3
+      },
+      "b": {
+        "correctness": 3,
+        "completeness": 3
+      }
+    },
+    {
+      "pair_id": "p05",
+      "a": {
+        "correctness": 3,
+        "completeness": 3
+      },
+      "b": {
+        "correctness": 3,
+        "completeness": 3
+      }
+    }
+  ],
+  "bias_documentation": "Judge có thể thiên vị vị trí (positional bias) khi hai trial swap cho kết quả khác nhau; swap-and-average giảm nhưng không loại trừ hoàn toàn. Fallback lexical có thể khác LLM khi không có API."
+}

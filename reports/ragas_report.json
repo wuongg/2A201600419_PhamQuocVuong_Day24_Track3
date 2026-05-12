@@ -1,0 +1,85 @@
+{
+  "aggregate": {
+    "faithfulness": 1.0,
+    "answer_relevancy": 0.0,
+    "context_precision": 0.6666666666166666,
+    "context_recall": 1.0
+  },
+  "num_questions": 3,
+  "failures": [
+    {
+      "question": "",
+      "worst_metric": "answer_relevancy",
+      "score": 0.0,
+      "avg_score": 0.5,
+      "all_scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 0.0,
+        "context_precision": 0.0,
+        "context_recall": 1.0
+      },
+      "diagnosis": "Answer doesn't match question — response off-topic",
+      "suggested_fix": "Improve prompt template to focus on answering the specific question"
+    },
+    {
+      "question": "",
+      "worst_metric": "answer_relevancy",
+      "score": 0.0,
+      "avg_score": 0.749999999975,
+      "all_scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 0.0,
+        "context_precision": 0.9999999999,
+        "context_recall": 1.0
+      },
+      "diagnosis": "Answer doesn't match question — response off-topic",
+      "suggested_fix": "Improve prompt template to focus on answering the specific question"
+    },
+    {
+      "question": "",
+      "worst_metric": "answer_relevancy",
+      "score": 0.0,
+      "avg_score": 0.7499999999875,
+      "all_scores": {
+        "faithfulness": 1.0,
+        "answer_relevancy": 0.0,
+        "context_precision": 0.99999999995,
+        "context_recall": 1.0
+      },
+      "diagnosis": "Answer doesn't match question — response off-topic",
+      "suggested_fix": "Improve prompt template to focus on answering the specific question"
+    }
+  ],
+  "failure_clusters": {
+    "by_worst_metric": {
+      "answer_relevancy": {
+        "count": 3,
+        "sample_questions": [
+          "",
+          "",
+          ""
+        ]
+      }
+    },
+    "by_diagnosis_pattern": {
+      "Answer doesn't match question — response off-topic": {
+        "count": 3,
+        "sample_questions": [
+          "",
+          "",
+          ""
+        ]
+      }
+    },
+    "summary": "3 low-performing questions; dominant failure axes: answer_relevancy"
+  },
+  "distribution_breakdown": {
+    "direct_factual": {
+      "count": 3,
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.0,
+      "context_precision": 0.6666666666166666,
+      "context_recall": 1.0
+    }
+  }
+}
